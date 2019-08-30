@@ -2,6 +2,10 @@
 
 A simple tool to get an ephemeral CLI in a ECS Fargate task.
 
+```
+$ go get -u github.com/keichan34/ecs-fargate-login
+```
+
 ## Use cases
 
 * Serverless [bastion host](https://docs.aws.amazon.com/quickstart/latest/linux-bastion/architecture.html).
