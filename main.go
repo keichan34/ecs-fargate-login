@@ -26,8 +26,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"strings"
-	"syscall"
 
 	"github.com/keichan34/ecs-fargate-login/utils"
 
@@ -78,12 +78,13 @@ func main() {
 		fmt.Println("We weren't able to save the key.")
 		panic("Error; exiting.")
 	}
+	defer os.Remove(tmpfile.Name())
 	if _, err := tmpfile.Write([]byte(keyPair.PrivateKeyPEM)); err != nil {
 		fmt.Println("We weren't able to save the key.")
 		panic("Error; exiting.")
 	}
 
-	syscall.Exec("/usr/bin/ssh", []string{
+	cmd := exec.Command(
 		"ssh",
 		"-p",
 		"22", // <- TODO: support different SSH port
@@ -93,8 +94,14 @@ func main() {
 		"UserKnownHostsFile=/dev/null",
 		"-o",
 		"StrictHostKeyChecking=no",
-		fmt.Sprintf("root@%s", *taskIP), // <- TODO: support non-root user
-	}, []string{})
+		fmt.Sprintf("root@%s", *taskIP), // <- TODO: support different user
+	)
+	// redirect the output to terminal
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	cmd.Run()
 }
 
 func generateKeyPair() *utils.SSHKeyPair {
