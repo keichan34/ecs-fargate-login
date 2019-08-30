@@ -1,0 +1,48 @@
+{
+  "containerDefinitions": [
+    {
+      "memory": 4096,
+      "cpu": 1024,
+      "portMappings": [
+        {
+          "hostPort": 22,
+          "containerPort": 22,
+          "protocol": "tcp"
+        }
+      ],
+      "essential": true,
+      "name": "cli",
+      "environment": [
+        {
+          "name": "",
+          "value": ""
+        }
+      ],
+      "secrets": [],
+      "links": [],
+      "image": "keichan34/ecs-fargate-login-server:latest",
+      "command": [
+        "/bin/start-sshd.sh"
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-region": "ap-northeast-1",
+          "awslogs-group": "/ecs/test-cli",
+          "awslogs-stream-prefix": "cli"
+        }
+      },
+      "privileged": false
+    }
+  ],
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "1024",
+  "memory": "4096",
+  "taskRoleArn": "[ENTER TASK ROLE ARN HERE]",
+  "executionRoleArn": "[ENTER EXECUTION TASK ROLE ARN HERE]",
+  "volumes": [],
+  "networkMode": "awsvpc",
+  "family": "test-cli"
+}
