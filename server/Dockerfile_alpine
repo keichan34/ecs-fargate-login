@@ -1,0 +1,11 @@
+FROM ruby:2.6.3-alpine
+
+RUN apk add --update --no-cache \
+    bash \
+    openssh \
+    shadow
+
+ADD start-sshd.sh /bin/start-sshd.sh
+
+EXPOSE 22
+CMD ["/bin/start-sshd.sh"]

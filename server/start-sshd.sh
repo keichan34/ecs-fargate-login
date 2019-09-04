@@ -26,6 +26,9 @@ set -o pipefail
 # Set up shell wrapper
 cat << 'EOF' > /bin/shell-wrapper.sh
 #!/bin/bash
+set -a
+. /etc/docker_env
+set +a
 
 set +e
 /bin/bash --login "$@"
@@ -35,21 +38,23 @@ kill -s SIGTERM 1
 EOF
 chmod +x /bin/shell-wrapper.sh
 echo "/bin/shell-wrapper.sh" >> /etc/shells
-chsh -s /bin/shell-wrapper.sh
+# Set shell for root (Alpine doesn't have chsh)
+sed -r 's@^(root:.*?:)[^:]+@\1/bin/shell-wrapper.sh@g' -i /etc/passwd
+# Unlock root account
+passwd -u root
 
 # Set up environment for shells spawned by sshd
-env | \
-    grep -v '^_' | \
-    grep -v '^TERM=' | \
-    grep -v '^SHLVL=' | \
-    grep -v '^HOME=' | \
-    grep -v '^PWD=' \
-    > /etc/environment
+echo -ne "" > /etc/docker_env
+for var in $(compgen -e); do
+  if [[ "$var" != _* && "$var" != "TERM" && "$var" != "SHLVL" && "$var" != "HOME" && "$var" != "PWD" ]]; then
+    echo -ne "$var='"${!var//\'/\'\"\'\"\'}"'\n" >> /etc/docker_env
+  fi
+done
 
 # Register authorized key
 if [ -z "$_AUTHORIZED_PUBLIC_KEY" ]; then
-    echo "The _AUTHORIZED_PUBLIC_KEY environment variable is not set. This is not a supported configuration, as nobody will be able to log in."
-    exit 1
+  echo "The _AUTHORIZED_PUBLIC_KEY environment variable is not set. This is not a supported configuration, as nobody will be able to log in."
+  exit 1
 fi
 mkdir -p $HOME/.ssh
 echo -e "$_AUTHORIZED_PUBLIC_KEY" > "$HOME/.ssh/authorized_keys"
@@ -60,11 +65,14 @@ echo "Authorized the following keys:"
 cat "$HOME/.ssh/authorized_keys"
 
 # SSH login fix. Otherwise user is kicked off after login
-sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
+if [ -f "/etc/pam.d/sshd" ]; then
+  sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
+fi
 
 # Set up sshd server
 mkdir /var/run/sshd
 
 echo "Booting SSH server."
 
+ssh-keygen -A
 exec /usr/sbin/sshd -D -e
