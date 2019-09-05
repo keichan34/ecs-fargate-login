@@ -60,7 +60,9 @@ func main() {
 
 	keyPair := generateKeyPair()
 
-	sess := session.Must(session.NewSession())
+	sess := session.Must(session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable,
+	}))
 
 	taskArn := runTask(sess, taskDefinitionName, clusterName, keyPair, assignPublicIP, securityGroupsStr, subnetsStr)
 
