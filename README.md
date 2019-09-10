@@ -51,7 +51,11 @@ On the server:
 On the interactive client:
 
 * `ecs-fargate-login`
-* Access to AWS (you'll need `ecs:RunTask`, `ecs:DescribeTasks`, and `ec2:DescribeNetworkInterfaces` at least)
+* Access to AWS
+  * `ecs:RunTask` for the ARN of the task definition the tool will use to boot.
+  * `ecs:DescribeTasks` for all tasks
+  * `ec2:DescribeNetworkInterfaces` (only supports a resource of `*`)
+  * `iam:PassRole` for both the execution task role (the role AWS Fargate uses to start the task) and the task role (the role the task assumes when running)
 
 ## Quick Start
 
