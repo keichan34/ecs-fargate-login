@@ -209,7 +209,12 @@ func getTaskIPAddress(sess *session.Session, clusterName string, taskArn *string
 			taskArn,
 		},
 	}
-	err := ecsSvc.WaitUntilTasksRunning(describeTaskInput)
+	err := ecsSvc.WaitUntilTasksRunningWithContext(
+		aws.BackgroundContext(),
+		describeTaskInput,
+		request.WithWaiterDelay(request.ConstantWaiterDelay(5*time.Second)),
+		request.WithWaiterMaxAttempts(60), // 5 minutes = 5 seconds * 60
+	)
 	if err != nil {
 		aerr, ok := err.(awserr.Error)
 		if ok && aerr.Code() == request.WaiterResourceNotReadyErrorCode {
