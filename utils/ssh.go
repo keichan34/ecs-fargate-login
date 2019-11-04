@@ -27,7 +27,9 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"io/ioutil"
 	"log"
+	"os"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -72,6 +74,20 @@ func GenerateSSHKeyPair() (*SSHKeyPair, error) {
 		PublicKeyAuthorizedKey: string(publicKeyBytes),
 	}
 	return out, nil
+}
+
+// WritePrivateKeyToTempfile will write the private key part of a key pair to a temporary file.
+// You are responsible for removing the private key when you're done with it.
+func WritePrivateKeyToTempfile(pair *SSHKeyPair) (*os.File, error) {
+	tmpfile, err := ioutil.TempFile("", "tmpsshkey")
+	if err != nil {
+		return nil, err
+	}
+	if _, err := tmpfile.Write([]byte(pair.PrivateKeyPEM)); err != nil {
+		os.Remove(tmpfile.Name())
+		return nil, err
+	}
+	return tmpfile, nil
 }
 
 // ssHPrivateKeyToPEM encodes the private key in PEM format.
