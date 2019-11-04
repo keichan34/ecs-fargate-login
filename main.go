@@ -28,6 +28,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/keichan34/ecs-fargate-login/utils"
 
@@ -104,6 +105,10 @@ func main() {
 	cmd.Stderr = os.Stderr
 
 	cmd.Run()
+
+	fmt.Println("Disconnected from SSH. Waiting for task to stop...")
+
+	waitForTaskToStop(sess, clusterName, taskArn)
 }
 
 func generateKeyPair() *utils.SSHKeyPair {
@@ -113,6 +118,44 @@ func generateKeyPair() *utils.SSHKeyPair {
 		os.Exit(1)
 	}
 	return keyPair
+}
+
+func waitForTaskToStop(sess *session.Session, clusterName string, taskArn *string) {
+	ecsSvc := ecs.New(sess)
+
+	describeTaskInput := &ecs.DescribeTasksInput{
+		Cluster: aws.String(clusterName),
+		Tasks: []*string{
+			taskArn,
+		},
+	}
+	err := ecsSvc.WaitUntilTasksStoppedWithContext(
+		aws.BackgroundContext(),
+		describeTaskInput,
+		request.WithWaiterDelay(request.ConstantWaiterDelay(5*time.Second)),
+		request.WithWaiterMaxAttempts(12), // 5 seconds * 12 = 1 minute
+	)
+	if err != nil {
+		aerr, ok := err.(awserr.Error)
+		if ok && aerr.Code() == request.WaiterResourceNotReadyErrorCode {
+			fmt.Println("Task hasn't stopped within 1 minute; forcibly stopping task...")
+			forciblyStopTask(sess, clusterName, taskArn)
+		}
+	}
+	ensureNoEcsError(err)
+}
+
+func forciblyStopTask(sess *session.Session, clusterName string, taskArn *string) {
+	ecsSvc := ecs.New(sess)
+
+	stopTaskInput := &ecs.StopTaskInput{
+		Cluster: aws.String(clusterName),
+		Task:    taskArn,
+	}
+	_, err := ecsSvc.StopTask(stopTaskInput)
+	ensureNoEcsError(err)
+
+	fmt.Println("Task stopped.")
 }
 
 func runTask(sess *session.Session, taskDefinitionName string, clusterName string, keyPair *utils.SSHKeyPair, assignPublicIP bool, securityGroupsStr string, subnetsStr string) *string {
