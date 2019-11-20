@@ -40,6 +40,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/ecs"
 )
 
+var version string
+var commit string
+var date string
+
 func main() {
 	var taskDefinitionName, clusterName, cliContainerName, securityGroupsStr, subnetsStr string
 	var assignPublicIP bool
@@ -54,6 +58,8 @@ func main() {
 	flag.Parse()
 
 	if taskDefinitionName == "" || securityGroupsStr == "" || subnetsStr == "" {
+		printVersionInfo()
+
 		flag.Usage()
 		os.Exit(1)
 		return
@@ -109,6 +115,19 @@ func main() {
 	fmt.Println("Disconnected from SSH. Waiting for task to stop...")
 
 	waitForTaskToStop(sess, clusterName, taskArn)
+}
+
+func printVersionInfo() {
+	if version != "" {
+		fmt.Printf(
+			"ecs-fargate-login %s (%s, built at %s)\n",
+			version,
+			commit,
+			date,
+		)
+	} else {
+		fmt.Println("ecs-fargate-login (development)")
+	}
 }
 
 func generateKeyPair() *utils.SSHKeyPair {
