@@ -103,6 +103,8 @@ func main() {
 		"UserKnownHostsFile=/dev/null",
 		"-o",
 		"StrictHostKeyChecking=no",
+		"-o",
+		"IdentitiesOnly=yes",
 		fmt.Sprintf("root@%s", *taskIP), // <- TODO: support different user
 	)
 	// redirect the output to terminal
